@@ -12,15 +12,21 @@ import (
 	"github.com/gopxl/pixel/pixelgl"
 )
 
-var windowProperties = map[string]float64{
-	"width":  800,
-	"height": 600,
-}
+const (
+	windowWidth  = 800
+	windowHeigth = 600
+)
 
-var assetsPath = map[string]string{
-	"player": "/assets/player.png",
-	"alien":  "/assets/alien.png",
-}
+const (
+	playerSpeed          = 300
+	alienMovementTimeout = 0.5
+	alienMovementOffset  = 5
+)
+
+const (
+	playerAsset = "/assets/player.png"
+	alienAsset  = "/assets/alien.png"
+)
 
 type Direction string
 
@@ -30,20 +36,36 @@ const (
 	Down  Direction = "down"
 )
 
-const playerSpeed = 300
-
 type Alien struct {
 	direction Direction
 	position  pixel.Vec
 }
 
-func (a *Alien) setPosition(heigth float64) {
+func (a *Alien) move(height float64) {
 	if a.direction == Right {
-		a.position.X += playerSpeed / 5
+		a.position.X += playerSpeed / alienMovementOffset
 	} else if a.direction == Down {
-		a.position.Y -= heigth
+		a.position.Y -= height
 	} else {
-		a.position.X -= playerSpeed / 5
+		a.position.X -= playerSpeed / alienMovementOffset
+	}
+}
+
+func (a *Alien) updateDirection(alienSpriteWidthBound, windowWidth float64) {
+	if a.position.X <= alienSpriteWidthBound {
+		if a.direction == Down {
+			a.direction = Right
+		} else {
+			a.direction = Down
+		}
+	}
+
+	if a.position.X >= windowWidth-((alienSpriteWidthBound*2)*2) {
+		if a.direction == Down {
+			a.direction = Left
+		} else {
+			a.direction = Down
+		}
 	}
 }
 
@@ -70,7 +92,7 @@ func loadPicture(path string) pixel.Picture {
 func initGameWindow() *pixelgl.Window {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Svidlak Space Invaders",
-		Bounds: pixel.R(0, 0, windowProperties["width"], windowProperties["height"]),
+		Bounds: pixel.R(0, 0, windowWidth, windowHeigth),
 		VSync:  true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
@@ -82,10 +104,10 @@ func initGameWindow() *pixelgl.Window {
 }
 
 func initPlayer(win *pixelgl.Window) func(float64) {
-	playerImage := loadPicture(assetsPath["player"])
+	playerImage := loadPicture(playerAsset)
 	playerSprite := pixel.NewSprite(playerImage, playerImage.Bounds())
 	playerSpriteWidthBound := (playerImage.Bounds().Max).X / 2
-	playerPos := pixel.V(windowProperties["width"]/2, 50)
+	playerPos := pixel.V(windowWidth/2, 50)
 
 	return func(dt float64) {
 		if win.Pressed(pixelgl.KeyLeft) {
@@ -94,7 +116,7 @@ func initPlayer(win *pixelgl.Window) func(float64) {
 			}
 		}
 		if win.Pressed(pixelgl.KeyRight) {
-			if playerPos.X < windowProperties["width"]-playerSpriteWidthBound {
+			if playerPos.X < windowWidth-playerSpriteWidthBound {
 				playerPos.X += playerSpeed * dt
 			}
 		}
@@ -104,13 +126,12 @@ func initPlayer(win *pixelgl.Window) func(float64) {
 }
 
 func initAliens(win *pixelgl.Window) func(float64) {
-	alienImage := loadPicture(assetsPath["alien"])
+	alienImage := loadPicture(alienAsset)
 	alienSprite := pixel.NewSprite(alienImage, alienImage.Bounds())
 
 	alienSpriteWidthBound := (alienImage.Bounds().Max).X / 2
-	alienSpriteHeigth := (alienImage.Bounds().Max).Y
 
-	alienPos := pixel.V(alienSpriteWidthBound, windowProperties["height"]-50)
+	alienPos := pixel.V(alienSpriteWidthBound, windowHeigth-50)
 
 	last := time.Now()
 
@@ -120,27 +141,13 @@ func initAliens(win *pixelgl.Window) func(float64) {
 	return func(dt float64) {
 		passed := time.Since(last).Seconds()
 
-		if passed > 0.5 {
+		if passed > alienMovementTimeout {
 			for idx, alienVal := range aliens {
 				alien := &alienVal
 
-				if alien.position.X <= alienSpriteWidthBound {
-					if alien.direction == Down {
-						alien.direction = Right
-					} else {
-						alien.direction = Down
-					}
-				}
+				alien.updateDirection(alienSpriteWidthBound, windowWidth)
+				alien.move((alienImage.Bounds().Max).Y + alienMovementOffset)
 
-				if alien.position.X >= windowProperties["width"]-((alienSpriteWidthBound*2)*2) {
-					if alien.direction == Down {
-						alien.direction = Left
-					} else {
-						alien.direction = Down
-					}
-				}
-
-				alien.setPosition(alienSpriteHeigth + 5)
 				aliens[idx] = *alien
 			}
 
