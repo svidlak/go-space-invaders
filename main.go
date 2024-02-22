@@ -170,7 +170,7 @@ func initGameText(win *pixelgl.Window) func() {
 		healthText := text.New(pixel.V(constants.WindowWidth-100, constants.WindowHeigth-25), basicAtlas)
 
 		fmt.Fprintln(scoreText, "Score: "+strconv.Itoa(gameStateController.Score))
-		fmt.Fprintln(healthText, "health: "+strconv.Itoa(gameStateController.Player.Health))
+		fmt.Fprintln(healthText, "Health: "+strconv.Itoa(gameStateController.Player.Health))
 
 		scoreText.Draw(win, pixel.IM.Scaled(scoreText.Orig, 1.5))
 		healthText.Draw(win, pixel.IM.Scaled(healthText.Orig, 1.5))
