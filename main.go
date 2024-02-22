@@ -14,17 +14,6 @@ import (
 	"github.com/svidlak/go-space-invaders/models"
 )
 
-const (
-	windowWidth  = 800
-	windowHeigth = 600
-)
-
-const (
-	playerAsset = "/assets/player.png"
-	alienAsset  = "/assets/alien.png"
-	bulletAsset = "/assets/bullet.png"
-)
-
 func loadPicture(path string) pixel.Picture {
 	pwd, _ := os.Getwd()
 	file, err := os.Open(pwd + path)
@@ -48,7 +37,7 @@ func loadPicture(path string) pixel.Picture {
 func initGameWindow() *pixelgl.Window {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Svidlak Space Invaders",
-		Bounds: pixel.R(0, 0, windowWidth, windowHeigth),
+		Bounds: pixel.R(0, 0, constants.WindowWidth, constants.WindowHeigth),
 		VSync:  true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
@@ -64,11 +53,11 @@ func initGameWindow() *pixelgl.Window {
 // }
 
 func initPlayer(win *pixelgl.Window) func(float64) {
-	playerImage := loadPicture(playerAsset)
+	playerImage := loadPicture(constants.PlayerAsset)
 	playerSprite := pixel.NewSprite(playerImage, playerImage.Bounds())
 	playerSpriteWidthBound := (playerImage.Bounds().Max).X / 2
 
-	player := models.Player{Position: pixel.V(windowWidth/2, 50)}
+	player := models.Player{Position: pixel.V(constants.WindowWidth/2, 50)}
 
 	return func(dt float64) {
 		if win.Pressed(pixelgl.KeyLeft) {
@@ -77,7 +66,7 @@ func initPlayer(win *pixelgl.Window) func(float64) {
 			}
 		}
 		if win.Pressed(pixelgl.KeyRight) {
-			if player.Position.X < windowWidth-playerSpriteWidthBound {
+			if player.Position.X < constants.WindowWidth-playerSpriteWidthBound {
 				player.Position.X += constants.PlayerSpeed * dt
 			}
 		}
@@ -87,14 +76,14 @@ func initPlayer(win *pixelgl.Window) func(float64) {
 }
 
 func initAliens(win *pixelgl.Window) func(float64) {
-	alienImage := loadPicture(alienAsset)
+	alienImage := loadPicture(constants.AlienAsset)
 	alienSprite := pixel.NewSprite(alienImage, alienImage.Bounds())
 
 	alienSpriteWidthBound := (alienImage.Bounds().Max).X / 2
 
 	last := time.Now()
 
-	alien := models.Alien{Direction: constants.Down, Position: pixel.V(alienSpriteWidthBound, windowHeigth-50)}
+	alien := models.Alien{Direction: constants.Down, Position: pixel.V(alienSpriteWidthBound, constants.WindowHeigth-50)}
 	aliens := []models.Alien{alien}
 
 	return func(dt float64) {
@@ -104,7 +93,7 @@ func initAliens(win *pixelgl.Window) func(float64) {
 			for idx, alienVal := range aliens {
 				alien := &alienVal
 
-				alien.UpdateDirection(alienSpriteWidthBound, windowWidth)
+				alien.UpdateDirection(alienSpriteWidthBound, constants.WindowWidth)
 				alien.Move((alienImage.Bounds().Max).Y + constants.AlienMovementTimeout)
 
 				aliens[idx] = *alien
