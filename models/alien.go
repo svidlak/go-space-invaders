@@ -39,7 +39,7 @@ func (a *Alien) UpdateDirection(alienSpriteWidthBound, windowWidth float64) {
 	}
 }
 
-func (a *Alien) DetectCollision(bullet Bullet) bool {
+func (a *Alien) DetectCollision(bullet *Bullet) bool {
 	alienCenterPoint := a.Bounds.Max.X / 2
 
 	minWidthPoint := a.Position.X - alienCenterPoint

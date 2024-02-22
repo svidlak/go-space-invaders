@@ -7,7 +7,7 @@ type Player struct {
 	Bounds   pixel.Rect
 }
 
-func (p *Player) DetectCollision(bullet Bullet) bool {
+func (p *Player) DetectCollision(bullet *Bullet) bool {
 	playerCenterPoint := p.Bounds.Max.X / 2
 
 	minWidthPoint := p.Position.X - playerCenterPoint

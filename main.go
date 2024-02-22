@@ -51,11 +51,11 @@ func initGameWindow() *pixelgl.Window {
 	return win
 }
 
-func detectPlayerCollision(bullet models.Bullet) bool {
+func detectPlayerCollision(bullet *models.Bullet) bool {
 	return gameState.Player.DetectCollision(bullet)
 }
 
-func detectAlienCollision(bullet models.Bullet) bool {
+func detectAlienCollision(bullet *models.Bullet) bool {
 	collision := false
 
 	tmpAliens := []models.Alien{}
@@ -72,6 +72,22 @@ func detectAlienCollision(bullet models.Bullet) bool {
 	return collision
 }
 
+func moveBullet(bullet *models.Bullet) {
+	if bullet.Entity == constants.AlienEntity {
+		bullet.Position.Y--
+	} else {
+		bullet.Position.Y++
+	}
+}
+
+func detectCollision(bullet *models.Bullet) bool {
+	if bullet.Entity == constants.AlienEntity {
+		return detectPlayerCollision(bullet)
+	} else {
+		return detectAlienCollision(bullet)
+	}
+}
+
 func initBullet(win *pixelgl.Window) (func(pixel.Vec, constants.Entity), func()) {
 	bulletImage := loadPicture(constants.BulletAsset)
 	bulletSprite := pixel.NewSprite(bulletImage, bulletImage.Bounds())
@@ -83,25 +99,9 @@ func initBullet(win *pixelgl.Window) (func(pixel.Vec, constants.Entity), func())
 		}, func() {
 			tmpBullets := []models.Bullet{}
 
-			for idx, bullet := range bullets {
-				bulletCollision := false
-
-				if bullet.Entity == constants.AlienEntity {
-					bullet.Position.Y--
-					bulletCollision = detectPlayerCollision(bullet)
-					if bulletCollision {
-						fmt.Println("player fallen")
-					}
-				} else {
-					bullet.Position.Y++
-					bulletCollision = detectAlienCollision(bullet)
-
-					if bulletCollision {
-						fmt.Println("alien fallen")
-					}
-				}
-
-				bullets[idx] = bullet
+			for _, bullet := range bullets {
+				moveBullet(&bullet)
+				bulletCollision := detectCollision(&bullet)
 
 				if bullet.Position.Y > 0 && bullet.Position.Y < constants.WindowHeigth && !bulletCollision {
 					bulletSprite.Draw(win, pixel.IM.Moved(bullet.Position))
