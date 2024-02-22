@@ -12,6 +12,7 @@ type GameStateController struct {
 	Aliens  []Alien
 	Player  Player
 	Bullets []Bullet
+	Health  int
 }
 
 func (g *GameStateController) UpdateAlienMovement(dt float64, direction float64, movement float64) {

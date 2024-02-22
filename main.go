@@ -6,12 +6,15 @@ import (
 	"image/color"
 	_ "image/png"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gopxl/pixel"
 	"github.com/gopxl/pixel/pixelgl"
+	"github.com/gopxl/pixel/text"
 	"github.com/svidlak/go-space-invaders/constants"
 	"github.com/svidlak/go-space-invaders/models"
+	"golang.org/x/image/font/basicfont"
 )
 
 var gameStateController = models.GameStateController{}
@@ -62,6 +65,7 @@ func detectAlienCollision(bullet *models.Bullet) bool {
 	for _, alien := range gameStateController.Aliens {
 		if alien.DetectCollision(bullet) {
 			collision = true
+			gameStateController.Score += 10
 		} else {
 			tmpAliens = append(tmpAliens, alien)
 		}
@@ -107,7 +111,7 @@ func initPlayer(win *pixelgl.Window) func(float64) {
 	playerSprite := pixel.NewSprite(playerImage, playerImage.Bounds())
 	playerSpriteWidthBound := (playerImage.Bounds().Max).X / 2
 
-	gameStateController.Player = models.Player{Bounds: playerImage.Bounds(), Position: pixel.V(constants.WindowWidth/2, 50)}
+	gameStateController.Player = models.Player{Bounds: playerImage.Bounds(), Position: pixel.V(constants.WindowWidth/2, 50), Health: 3}
 
 	return func(dt float64) {
 		if win.Pressed(pixelgl.KeyLeft) {
@@ -158,11 +162,29 @@ func initAliens(win *pixelgl.Window) func(float64) {
 	}
 }
 
+func initGameText(win *pixelgl.Window) func() {
+	basicAtlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
+
+	return func() {
+		scoreText := text.New(pixel.V(0, constants.WindowHeigth-25), basicAtlas)
+		healthText := text.New(pixel.V(constants.WindowWidth-100, constants.WindowHeigth-25), basicAtlas)
+
+		fmt.Fprintln(scoreText, "Score: "+strconv.Itoa(gameStateController.Score))
+		fmt.Fprintln(healthText, "health: "+strconv.Itoa(gameStateController.Player.Health))
+
+		scoreText.Draw(win, pixel.IM.Scaled(scoreText.Orig, 1.5))
+		healthText.Draw(win, pixel.IM.Scaled(healthText.Orig, 1.5))
+	}
+}
+
 func run() {
 	win := initGameWindow()
 	updatePlayerMovement := initPlayer(win)
 	updateAlienMovement := initAliens(win)
 	updateBulletsMovement := initBullet(win)
+	updateScoreText := initGameText(win)
+
+	win.SetSmooth(true)
 
 	last := time.Now()
 	for !win.Closed() {
@@ -174,8 +196,14 @@ func run() {
 		updatePlayerMovement(dt)
 		updateAlienMovement(dt)
 		updateBulletsMovement()
+		updateScoreText()
+
+		if gameStateController.Player.Health < 1 {
+			win.Destroy()
+		}
 
 		win.Update()
+
 	}
 }
 
