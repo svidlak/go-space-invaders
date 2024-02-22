@@ -1,5 +1,7 @@
 # Space Invaders Game in Golang
 
+![output](https://github.com/svidlak/go-space-invaders/assets/9073671/3f62d0b2-2832-4ce5-942c-5a452eaae49a)
+
 ## Overview
 
 This is a simple Space Invaders game implemented in Golang using the Pixel library. It features a player-controlled spaceship, alien invaders, and bullets for shooting down the aliens. The game window is created using PixelGL.
