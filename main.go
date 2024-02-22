@@ -89,9 +89,16 @@ func initBullet(win *pixelgl.Window) (func(pixel.Vec, constants.Entity), func())
 				if bullet.Entity == constants.AlienEntity {
 					bullet.Position.Y--
 					bulletCollision = detectPlayerCollision(bullet)
+					if bulletCollision {
+						fmt.Println("player fallen")
+					}
 				} else {
 					bullet.Position.Y++
 					bulletCollision = detectAlienCollision(bullet)
+
+					if bulletCollision {
+						fmt.Println("alien fallen")
+					}
 				}
 
 				bullets[idx] = bullet
