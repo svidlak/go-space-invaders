@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	_ "image/png"
-	"math/rand"
 	"os"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 	"github.com/svidlak/go-space-invaders/models"
 )
 
-var gameState = models.GameState{}
+var gameStateController = models.GameStateController{}
 
 func loadPicture(path string) pixel.Picture {
 	pwd, _ := os.Getwd()
@@ -52,7 +51,7 @@ func initGameWindow() *pixelgl.Window {
 }
 
 func detectPlayerCollision(bullet *models.Bullet) bool {
-	return gameState.Player.DetectCollision(bullet)
+	return gameStateController.Player.DetectCollision(bullet)
 }
 
 func detectAlienCollision(bullet *models.Bullet) bool {
@@ -60,7 +59,7 @@ func detectAlienCollision(bullet *models.Bullet) bool {
 
 	tmpAliens := []models.Alien{}
 
-	for _, alien := range gameState.Aliens {
+	for _, alien := range gameStateController.Aliens {
 		if alien.DetectCollision(bullet) {
 			collision = true
 		} else {
@@ -68,16 +67,8 @@ func detectAlienCollision(bullet *models.Bullet) bool {
 		}
 	}
 
-	gameState.Aliens = tmpAliens
+	gameStateController.Aliens = tmpAliens
 	return collision
-}
-
-func moveBullet(bullet *models.Bullet) {
-	if bullet.Entity == constants.AlienEntity {
-		bullet.Position.Y--
-	} else {
-		bullet.Position.Y++
-	}
 }
 
 func detectCollision(bullet *models.Bullet) bool {
@@ -88,89 +79,80 @@ func detectCollision(bullet *models.Bullet) bool {
 	}
 }
 
-func initBullet(win *pixelgl.Window) (func(pixel.Vec, constants.Entity), func()) {
+func initBullet(win *pixelgl.Window) func() {
 	bulletImage := loadPicture(constants.BulletAsset)
 	bulletSprite := pixel.NewSprite(bulletImage, bulletImage.Bounds())
 
-	bullets := []models.Bullet{}
+	gameStateController.Bullets = []models.Bullet{}
 
-	return func(position pixel.Vec, entity constants.Entity) {
-			bullets = append(bullets, models.Bullet{Position: position, Entity: entity})
-		}, func() {
-			tmpBullets := []models.Bullet{}
+	return func() {
+		tmpBullets := []models.Bullet{}
 
-			for _, bullet := range bullets {
-				moveBullet(&bullet)
-				bulletCollision := detectCollision(&bullet)
+		for _, bullet := range gameStateController.Bullets {
+			bullet.MoveBullet(&bullet)
+			bulletCollision := detectCollision(&bullet)
 
-				if bullet.Position.Y > 0 && bullet.Position.Y < constants.WindowHeigth && !bulletCollision {
-					bulletSprite.Draw(win, pixel.IM.Moved(bullet.Position))
-					tmpBullets = append(tmpBullets, bullet)
-				}
+			if bullet.Position.Y > 0 && bullet.Position.Y < constants.WindowHeigth && !bulletCollision {
+				bulletSprite.Draw(win, pixel.IM.Moved(bullet.Position))
+				tmpBullets = append(tmpBullets, bullet)
 			}
-
-			bullets = tmpBullets
 		}
+
+		gameStateController.Bullets = tmpBullets
+	}
 }
 
-func initPlayer(win *pixelgl.Window, shootBullet func(pixel.Vec, constants.Entity)) func(float64) {
+func initPlayer(win *pixelgl.Window) func(float64) {
 	playerImage := loadPicture(constants.PlayerAsset)
 	playerSprite := pixel.NewSprite(playerImage, playerImage.Bounds())
 	playerSpriteWidthBound := (playerImage.Bounds().Max).X / 2
 
-	gameState.Player = models.Player{Bounds: playerImage.Bounds(), Position: pixel.V(constants.WindowWidth/2, 50)}
+	gameStateController.Player = models.Player{Bounds: playerImage.Bounds(), Position: pixel.V(constants.WindowWidth/2, 50)}
 
 	return func(dt float64) {
 		if win.Pressed(pixelgl.KeyLeft) {
-			if gameState.Player.Position.X > playerSpriteWidthBound {
-				gameState.Player.Position.X -= constants.PlayerSpeed * dt
+			if gameStateController.Player.Position.X > playerSpriteWidthBound {
+				gameStateController.Player.Position.X -= constants.PlayerSpeed * dt
 			}
 		}
 		if win.Pressed(pixelgl.KeyRight) {
-			if gameState.Player.Position.X < constants.WindowWidth-playerSpriteWidthBound {
-				gameState.Player.Position.X += constants.PlayerSpeed * dt
+			if gameStateController.Player.Position.X < constants.WindowWidth-playerSpriteWidthBound {
+				gameStateController.Player.Position.X += constants.PlayerSpeed * dt
 			}
 		}
 
 		if win.JustPressed(pixelgl.KeySpace) {
-			shootBullet(gameState.Player.Position, constants.PlayerEntity)
+			gameStateController.ShootBullet(constants.PlayerEntity)
 		}
 
-		playerSprite.Draw(win, pixel.IM.Moved(gameState.Player.Position))
+		playerSprite.Draw(win, pixel.IM.Moved(gameStateController.Player.Position))
 	}
 }
 
-func initAliens(win *pixelgl.Window, shootBullet func(pixel.Vec, constants.Entity)) func(float64) {
+func initAliens(win *pixelgl.Window) func(float64) {
 	alienImage := loadPicture(constants.AlienAsset)
 	alienSprite := pixel.NewSprite(alienImage, alienImage.Bounds())
 
 	alienSpriteWidthBound := (alienImage.Bounds().Max).X / 2
+	alienMovement := (alienImage.Bounds().Max).Y + constants.AlienMovementTimeout
+	alienPosition := pixel.V(alienSpriteWidthBound, constants.WindowHeigth-50)
 
 	last := time.Now()
 
-	alien := models.Alien{Bounds: alienImage.Bounds(), Direction: constants.Down, Position: pixel.V(alienSpriteWidthBound, constants.WindowHeigth-50)}
-	gameState.Aliens = []models.Alien{alien}
+	gameStateController.AddAlien(alienImage.Bounds(), constants.Down, alienPosition)
 
 	return func(dt float64) {
 		passed := time.Since(last).Seconds()
 
 		if passed > constants.AlienMovementTimeout {
-			for idx, alienVal := range gameState.Aliens {
-				alien := &alienVal
+			gameStateController.UpdateAlienMovement(dt, alienSpriteWidthBound, alienMovement)
+			gameStateController.AddAlien(alienImage.Bounds(), constants.Down, alienPosition)
+			gameStateController.ShootBullet(constants.AlienEntity)
 
-				alien.UpdateDirection(alienSpriteWidthBound, constants.WindowWidth)
-				alien.Move((alienImage.Bounds().Max).Y + constants.AlienMovementTimeout)
-
-				gameState.Aliens[idx] = *alien
-			}
-
-			gameState.Aliens = append(gameState.Aliens, alien)
-			randomAlienNumber := rand.Intn(len(gameState.Aliens) - 0)
-			shootBullet(gameState.Aliens[randomAlienNumber].Position, constants.AlienEntity)
 			last = time.Now()
 		}
 
-		for _, alien := range gameState.Aliens {
+		for _, alien := range gameStateController.Aliens {
 			alienSprite.Draw(win, pixel.IM.Moved(alien.Position))
 		}
 	}
@@ -178,9 +160,9 @@ func initAliens(win *pixelgl.Window, shootBullet func(pixel.Vec, constants.Entit
 
 func run() {
 	win := initGameWindow()
-	shootBullet, updatePlayerBullets := initBullet(win)
-	updatePlayerMovement := initPlayer(win, shootBullet)
-	updateAlienMovement := initAliens(win, shootBullet)
+	updatePlayerMovement := initPlayer(win)
+	updateAlienMovement := initAliens(win)
+	updateBulletsMovement := initBullet(win)
 
 	last := time.Now()
 	for !win.Closed() {
@@ -191,7 +173,7 @@ func run() {
 
 		updatePlayerMovement(dt)
 		updateAlienMovement(dt)
-		updatePlayerBullets()
+		updateBulletsMovement()
 
 		win.Update()
 	}
