@@ -8,6 +8,12 @@ const (
 
 type Direction string
 
+type Entity string
+
+const (
+	PlayerEntity = "player"
+	AlienEntity  = "alien"
+)
 const (
 	Right Direction = "right"
 	Left  Direction = "left"

@@ -8,6 +8,7 @@ import (
 type Alien struct {
 	Direction constants.Direction
 	Position  pixel.Vec
+	Bounds    pixel.Rect
 }
 
 func (a *Alien) Move(height float64) {
@@ -36,4 +37,16 @@ func (a *Alien) UpdateDirection(alienSpriteWidthBound, windowWidth float64) {
 			a.Direction = constants.Down
 		}
 	}
+}
+
+func (a *Alien) DetectCollision(bullet Bullet) bool {
+	alienCenterPoint := a.Bounds.Max.X / 2
+
+	minWidthPoint := a.Position.X - alienCenterPoint
+	maxWidthPoint := a.Position.X + alienCenterPoint
+
+	if bullet.Position.X >= minWidthPoint && bullet.Position.X <= maxWidthPoint && bullet.Position.Y >= a.Position.Y {
+		return true
+	}
+	return false
 }
